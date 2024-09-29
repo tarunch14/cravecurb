@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+	xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+	xmlns:flowable="http://flowable.org/bpmn"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL
+                    https://www.omg.org/spec/BPMN/20100501/BPMN20.xsd"
+	targetNamespace="org.zomato.bpmn2">
+
+	<process id="order-process" isExecutable="true"
+		name="Order process">
+
+		<!-- Events start -->
+		<startEvent id="order-process-start"
+			name="Start order process"></startEvent>
+
+		<endEvent id="order-process-end" name="Order process end"></endEvent>
+
+		<!-- Additional end event for cancellation -->
+		<endEvent id="order-cancelled-end" name="Order Cancelled"></endEvent>
+		<!-- Events end -->
+
+	<!-- User tasks start -->
+	    <userTask id="order-placed" name="Order Placed Successfully and Notify Restaurant">
+		    <extensionElements>
+			    <flowable:taskListener event="complete"
+				    delegateExpression="${orderCreationTaskListener}" />
+		    </extensionElements>
+	    </userTask>
+
+		<userTask id="restaurant-accepts-order" name="Restaurant Accepts Order and Starts Preparation">
+			<extensionElements>
+				<flowable:taskListener event="complete"
+					delegateExpression="${restaurantPreparationTaskListener}" />
+			</extensionElements>
+		</userTask>
+
+		<userTask id="food-ready-for-pickup" name="Food Ready for Pickup and Assign Delivery Person">
+			<extensionElements>
+				<flowable:taskListener event="complete"
+					delegateExpression="${assignDeliveryPersonTaskListener}" />
+			</extensionElements>
+		</userTask>
+
+		<userTask id="delivery-person-picks-up-order" name="Delivery Person Picks Up Order">
+			<extensionElements>
+				<flowable:taskListener event="complete"
+					delegateExpression="${deliveryPickupTaskListener}" />
+			</extensionElements>
+		</userTask>
+
+		<userTask id="customer-receives-order" name="Customer Receives Order">
+			<extensionElements>
+				<flowable:taskListener event="complete"
+					delegateExpression="${customerReceiveOrderTaskListener}" />
+					<flowable:taskListener event="complete"
+					delegateExpression="${feedbackNotificationHandler}" />
+			</extensionElements>
+		</userTask>
+
+		<userTask id="customer-provides-feedback" name="Customer Provides Feedback">
+			<extensionElements>
+				<flowable:taskListener event="complete"
+					delegateExpression="${feedbackTaskListener}" />
+			</extensionElements>
+		</userTask>
+
+		<!-- Task to handle order cancellation -->
+		<userTask id="close-order" name="Close Order">
+			<extensionElements>
+				<flowable:taskListener event="create"
+					delegateExpression="${closeOrderTaskListener}" />
+			</extensionElements>
+		</userTask>
+	<!-- User tasks end -->
+
+		<!-- Gateways start -->
+
+		<exclusiveGateway id="restaurant-decision-gateway" gatewayDirection="Diverging"></exclusiveGateway>
+
+		<!-- Gateways end -->
+
+		<!-- Sequences start -->
+		<sequenceFlow targetRef="order-placed"
+			sourceRef="order-process-start"></sequenceFlow>
+
+		<!-- From Order Placed to Restaurant Decision Gateway -->
+		<sequenceFlow targetRef="restaurant-decision-gateway"
+		    sourceRef="order-placed"></sequenceFlow>
+
+		<!-- Restaurant Accepts Order -->
+		<sequenceFlow targetRef="restaurant-accepts-order"
+		    sourceRef="restaurant-decision-gateway">
+		    <conditionExpression xsi:type="tFormalExpression">${actionPerformedAtRestaurantPhase == 'ACCEPTED'}</conditionExpression>
+		</sequenceFlow>
+
+		<!-- Restaurant Cancels Order -->
+		<sequenceFlow targetRef="close-order"
+		    sourceRef="restaurant-decision-gateway">
+		    <conditionExpression xsi:type="tFormalExpression">${actionPerformedAtRestaurantPhase == 'CANCELLED'}</conditionExpression>
+		</sequenceFlow>
+
+		<!-- Food Ready for Pickup -->
+		<sequenceFlow targetRef="food-ready-for-pickup"
+		    sourceRef="restaurant-accepts-order">
+		    <conditionExpression xsi:type="tFormalExpression">${actionPerformedAtFoodPreparationPhase == 'PREPARED'}</conditionExpression>
+		</sequenceFlow>
+
+		<!-- Delivery Person Picks Up Order -->
+		<sequenceFlow targetRef="delivery-person-picks-up-order"
+		    sourceRef="food-ready-for-pickup">
+		    <conditionExpression xsi:type="tFormalExpression">${actionPerformedAtAvailableToPickOrderPhase == 'PICKED'}</conditionExpression>
+		</sequenceFlow>
+
+		<!-- Customer Receives Order -->
+		<sequenceFlow targetRef="customer-receives-order"
+		    sourceRef="delivery-person-picks-up-order">
+		    <conditionExpression xsi:type="tFormalExpression">${actionPerformedAtCustomerPhase == 'DELIVERED'}</conditionExpression>
+		</sequenceFlow>
+
+		<!-- Customer Provides Feedback -->
+		<sequenceFlow targetRef="customer-provides-feedback"
+			sourceRef="customer-receives-order"></sequenceFlow>
+
+		<!-- End Process After Feedback -->
+		<sequenceFlow targetRef="order-process-end"
+			sourceRef="customer-provides-feedback">
+		    <conditionExpression xsi:type="tFormalExpression">${actionPerformedAtFeedbackScheduledPhase == 'RECEIVED'}</conditionExpression>
+		</sequenceFlow>
+		
+		<!-- End Process if Order is Cancelled -->
+		<sequenceFlow targetRef="order-cancelled-end"
+			sourceRef="close-order"></sequenceFlow>
+		<!-- Sequences end -->
+
+	</process>
+</definitions>

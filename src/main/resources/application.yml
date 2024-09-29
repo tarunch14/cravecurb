@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: swiggy
+    jwt-secret-key: dw0vM8lmph5q8jTqYe66U8cHhGz154LLGy55fclPx1aPLglZU9HGSeYdiC1I3xxe0YAsSkdjevUsRPgbRbjZzc5NrQpnGaFqQKp21T9REk2FyieIjqgtP2uMwjnwmrx6
+    jwt-expiration-milliseconds: 86400000 # 1000 * 60 * 60 * 24
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/cravecurbdb
+    username: root
+    password: 2011@Mysql
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  mail:
+    host: smtp.gmail.com
+    default-encoding: UTF-8
+    username: notifications.demo.14@gmail.com
+    password: eyddofuxwzvjpjym
+    port: 587
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+    debug: true
+
+twilio:
+  account-SID: AC295d72378b6ac14c2973187399d46f64
+  authToken: 2cc3059eb154d8f1236f26ac8b3facba
+  number: +18777804236
+
+server:
+  port: 5454
+  max-http-request-header-size: 64KB
